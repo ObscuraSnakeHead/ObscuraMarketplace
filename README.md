@@ -3,7 +3,7 @@ Obscura Marketplace Script, developed by The ObscuraSec Hacking Group, is a Dark
 # Obscura Market
 Obscura Market is a DarkNet Market developed by The ObscuraSec Hacking Group. Administrated by ObscuraSnakeHead, Obscura Market is a Monero only DarkNet Market that was developed with OPSec, customer service and functionality in mind.
 # Operating System Requirements
-The Obscura Marketplace Script is developed on the "Kali Linux" platform, but it is recommended to host the market on "Tails OS (Linux) for maximum anonymity and OPSec.
+The Obscura Marketplace Script is developed on the "Kali Linux" platform, but it is recommended to host the market on "Tails OS (Linux)" for maximum anonymity and OPSec.
 # Installation Instructions
 Step 1.) Install PHP 8.4 and PHP extenstions by running:
 "sudo apt-get install php8.4-fpm php8.4-mysql php8.4-curl php8.4-gd php8.4-mbstring php8.4-xml php8.4-zip php8.4-bcmath php8.4-gnupg php8.4-intl php8.4-readline php8.4-common php8.4-cli php8.4-gmp"
@@ -54,10 +54,99 @@ Step 10.) Verify database and user:
 "mysql -u your_user -p"
 "SHOW DATABASES;"
 
+Step 11.) Marketplace Script Setup:
+"cd Downloads"
 
+"git clone https://github.com/ObscuraSnakeHead/ObscuraMarketplace.git"
 
+"sudo mv ObscuraMarketplace /var/www/"
 
+"cd /var/www/ObscuraMarketplace/"
 
+"cp .env.example .env"
 
+"sudo nano .env"
+add these lines to .env file:
+DB_DATABASE=databasename
+DB_USERNAME=user
+DB_PASSWORD=password
+save .env with CTRL+X 
 
+"npm install"
 
+"composer install"
+
+"php artisan key:generate"
+
+"php artisan migrate"
+
+Step 11b.) Set Folder Permissions Using:
+sudo chown -R www-data:www-data /var/www/ObscuraMarketplace
+sudo find /var/www/ObscuraMarketplace -type f -exec chmod 644 {} \;
+sudo find /var/www/ObscuraMarketplace -type d -exec chmod 755 {} \;
+sudo chmod -R 775 /var/www/ObscuraMarketplace/storage
+sudo chmod -R 775 /var/www/ObscuraMarketplace/bootstrap/cache
+sudo chmod 640 /var/www/ObscuraMarketplace/.env
+
+Step 12.) Setup Nginx Config by:
+"sudo nano /etc/nginx/sites-available/ObscuraMarketplace"
+
+Copy and Paste the Config Below:
+server {
+    listen 80;
+    listen [::]:80;
+
+    root /var/www/ObscuraMarketplace/public;
+    index index.php;
+
+    error_page 503 /maintenance.php;
+
+    location / {
+        if (-f $document_root/../storage/framework/down) {
+            return 503;
+        }
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+}
+
+Step 12b.) Setup Config SymLinks:
+"sudo ln -s /etc/nginx/sites-available/ObscuraMarketplace /etc/nginx/sites-enabled/"
+
+"sudo rm /etc/nginx/sites-enabled/default"
+
+Test Config - "sudo nginx -t" 
+
+Successful Config Run - "sudo systemctl restart nginx"
+
+Step 13.) Configure webserver to be served via Tor:
+"sudo apt-get install tor"
+"sudo nano /etc/tor/torrc"
+
+Uncomment or Add to Beginning of File:
+SocksPort 9050
+HiddenServiceDir /var/lib/tor/obscura_hidden_service/
+HiddenServicePort 80 127.0.0.1:80
+
+Step 14.) Restart all dependencies using:
+sudo systemctl restart php8.4-fpm
+sudo systemctl restart nginx
+sudo systemctl restart tor
+
+Step 15.) Open web browser and navigate to localhost. The marketplace login page should be visible from here if installation was done correctly.
+
+Step 16.) Get your .onion address:
+"sudo nano /var/lib/tor/obscura_hidden_service/hostname"
+
+Step 17.) Install Tor Browser:
+"sudo apt-get install torbrowser-launcher"
+
+Step 18.) Run Tor Browser and copy/paste your .onion into the URL box and your new marketplace should now be active.
